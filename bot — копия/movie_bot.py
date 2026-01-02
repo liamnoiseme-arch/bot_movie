@@ -1,11 +1,50 @@
+
 import asyncio
 import logging
 import aiohttp
 import random
+import os
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 from datetime import datetime
+from dotenv import load_dotenv
 
+# Загружаем переменные окружения из .env файла
+load_dotenv()
+
+# Настройка логирования
+logging.basicConfig(
+    level=getattr(logging, os.getenv('LOG_LEVEL', 'INFO')),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Конфигурация из переменных окружения
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+if not BOT_TOKEN:
+    raise ValueError("❌ BOT_TOKEN не установлен в переменных окружения!")
+
+API_CONFIG = {
+    # TMDB API
+    "tmdb_api_key": os.getenv('TMDB_API_KEY'),
+    "tmdb_base_url": os.getenv('TMDB_BASE_URL', 'https://api.themoviedb.org/3'),
+    
+    # Кинопоиск API
+    "kinopoisk_api_key": os.getenv('KINOPOISK_API_KEY'),
+    "kinopoisk_base_url": os.getenv('KINOPOISK_BASE_URL', 'https://api.kinopoisk.dev/v1.4'),
+    
+    # Kadikama
+    "kadikama_base_url": os.getenv('KADIKAMA_BASE_URL', 'https://kadikama.info'),
+}
+
+# Проверяем наличие обязательных ключей
+if not API_CONFIG["tmdb_api_key"]:
+    logger.warning("⚠️ TMDB_API_KEY не установлен. Будет использоваться локальная база данных.")
+
+# Настройки бота
+CACHE_DURATION = int(os.getenv('CACHE_DURATION', 3600))
+
+# Инициализация бота
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
@@ -13,29 +52,6 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 
-# Настройка логирования
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Конфигурация API (замените на свои ключи)
-API_CONFIG = {
-    # TMDB API (альтернатива IMDb, бесплатный)
-    "tmdb_api_key": "Токен_API",  # Получить на https://www.themoviedb.org/settings/api
-    "tmdb_base_url": "https://api.themoviedb.org/3",
-    
-    # Кинопоиск (требуется ключ API)
-    "kinopoisk_api_key": "JТокен_API",  # Получить на https://kinopoisk.dev/
-    "kinopoisk_base_url": "https://api.kinopoisk.dev/v1.4",
-    
-    # Kadikama (парсинг сайта)
-    "kadikama_base_url": "https://kadikama.info",
-}
-
-# Настройки бота
-BOT_TOKEN = "Токен_bot"
-CACHE_DURATION = 3600  # Кеширование на 1 час
-
-# Инициализация бота
 bot = Bot(token=BOT_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
